@@ -1,0 +1,63 @@
+[build-system]
+requires = ["setuptools>=65.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mini-spice"
+version = "0.1.0"
+description = "A minimal faithful replica of SPICE: Self-Play In Corpus Environments Improves Reasoning"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+authors = [
+    {name = "mini-spice contributors"}
+]
+
+dependencies = [
+    "torch>=2.0.0",
+    "transformers>=4.35.0",
+    "accelerate>=0.24.0",
+    "sympy>=1.12",
+    "datasets>=2.14.0",
+    "numpy>=1.24.0",
+    "pandas>=2.0.0",
+    "bitsandbytes>=0.41.0; platform_machine != 'arm64'",
+    "safetensors>=0.4.0",
+    "peft>=0.7.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "mypy>=1.5.0",
+    "black>=23.10.0",
+    "ruff>=0.1.6",
+    "pre-commit>=3.5.0",
+]
+
+[project.scripts]
+prepare-corpus = "mini_spice.cli.prepare_corpus:main"
+run-train = "mini_spice.cli.run_train:main"
+run-eval = "mini_spice.cli.run_eval:main"
+
+[tool.setuptools]
+packages = ["mini_spice", "mini_spice.eval", "mini_spice.cli"]
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+select = ["E", "F", "I", "N", "W", "UP"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+

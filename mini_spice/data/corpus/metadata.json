@@ -1,0 +1,9 @@
+[
+  {
+    "file": "test1.txt",
+    "chunk_id": 0,
+    "chunk_index": 0,
+    "token_count": 65,
+    "filename": "000000.txt"
+  }
+]

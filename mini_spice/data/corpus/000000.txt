@@ -1,0 +1,5 @@
+The Eiffel Tower is a wrought-iron lattice tower in Paris, France.
+It was built in 1889 and stands 330 meters tall.
+The tower has three levels accessible to visitors.
+It was designed by Gustave Eiffel for the 1889 World's Fair.
+.

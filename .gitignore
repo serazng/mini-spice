@@ -1,0 +1,52 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+checkpoints/
+runs/
+eval_results/
+
+# Environment configuration
+.env
+.env.local
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Python distribution / build artifacts
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Testing artifacts
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+*.cover
+
+# OS-specific files
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+Desktop.ini
+
+# Model checkpoint files
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+
+# Log files
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
