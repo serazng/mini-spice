@@ -40,7 +40,7 @@ def load_model_and_tokenizer(config: Config):
     
     # Load model
     model_kwargs = {
-        "torch_dtype": torch_dtype,
+        "dtype": torch_dtype,
         "device_map": "auto" if torch.cuda.is_available() else None,
         "low_cpu_mem_usage": config.low_cpu_mem_usage,
     }
@@ -102,7 +102,7 @@ def load_model_and_tokenizer(config: Config):
         try:
             model = AutoModelForCausalLM.from_pretrained(
                 model.config.name_or_path,
-                torch_dtype=torch_dtype,
+                dtype=torch_dtype,
                 attn_implementation="flash_attention_2"
             )
             print("Flash Attention 2 enabled")

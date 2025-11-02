@@ -23,7 +23,7 @@ def load_model_from_checkpoint(checkpoint_dir: str, base_model: str = None):
         tokenizer = AutoTokenizer.from_pretrained(checkpoint_dir)
         base_model_obj = AutoModelForCausalLM.from_pretrained(
             base_model,
-            torch_dtype=torch.bfloat16 if torch.cuda.is_available() else torch.float32,
+            dtype=torch.bfloat16 if torch.cuda.is_available() else torch.float32,
             device_map="auto" if torch.cuda.is_available() else None
         )
         model = PeftModel.from_pretrained(base_model_obj, checkpoint_dir)
@@ -33,7 +33,7 @@ def load_model_from_checkpoint(checkpoint_dir: str, base_model: str = None):
         tokenizer = AutoTokenizer.from_pretrained(checkpoint_dir)
         model = AutoModelForCausalLM.from_pretrained(
             checkpoint_dir,
-            torch_dtype=torch.bfloat16 if torch.cuda.is_available() else torch.float32,
+            dtype=torch.bfloat16 if torch.cuda.is_available() else torch.float32,
             device_map="auto" if torch.cuda.is_available() else None
         )
     
