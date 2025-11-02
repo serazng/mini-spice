@@ -191,7 +191,7 @@ class Trainer:
         step: int,
         run_id: str,
         log_file: str
-    ) -> Tuple[Optional[Dict[str, Any]], List[Dict[str, Any]], float]:
+    ) -> Tuple[Optional[Dict[str, Any]], List[Dict[str, Any]], float, int]:
         """Execute Challenger phase: generate question from document."""
         # Sample document
         doc_text, doc_id = self._sample_doc()
@@ -205,6 +205,9 @@ class Trainer:
             temperature=self.config.temp_C,
             max_new_tokens=512
         )
+        
+        # Count challenger generated tokens
+        challenger_token_count = challenger_generated_token_ids.shape[0]
         
         # Parse and validate
         challenger_data, is_valid, error = parse_challenger_output(output_text)
@@ -226,7 +229,7 @@ class Trainer:
                 notes=error,
                 run_id=run_id
             )
-            return None, [], self.config.invalid_penalty
+            return None, [], self.config.invalid_penalty, challenger_token_count
         
         # Compute Challenger logprob with gradients enabled
         challenger_logprob = self._compute_logprob_with_grad(
@@ -247,6 +250,7 @@ class Trainer:
         reasoner_attempts = []
         correctness_list = []
         logprobs_reasoner = []
+        total_token_count = challenger_token_count  # Start with challenger tokens
         
         for _ in range(self.config.G):
             # Reasoner prompt (NO DOCUMENT)
@@ -258,6 +262,10 @@ class Trainer:
                 temperature=self.config.temp_R,
                 max_new_tokens=256
             )
+            
+            # Count reasoner generated tokens
+            reasoner_token_count = reasoner_generated_token_ids.shape[0]
+            total_token_count += reasoner_token_count
             
             # Parse Reasoner output
             reasoner_data, reasoner_valid, reasoner_error = parse_reasoner_output(reasoner_output)
@@ -325,7 +333,7 @@ class Trainer:
         challenger_data["doc_id"] = doc_id
         challenger_data["logprob"] = challenger_logprob  # Tensor with gradients
         
-        return challenger_data, reasoner_attempts, rC
+        return challenger_data, reasoner_attempts, rC, total_token_count
     
     def train_step(
         self,
@@ -347,9 +355,12 @@ class Trainer:
         
         for _ in range(batch_size):
             # Challenger phase
-            challenger_data, reasoner_attempts, rC = self._challenger_phase(
+            challenger_data, reasoner_attempts, rC, token_count = self._challenger_phase(
                 step, run_id, log_file
             )
+            
+            # Accumulate token usage (count tokens even for invalid outputs)
+            total_tokens += token_count
             
             if challenger_data is None:
                 # Invalid Challenger output: penalized but excluded from training
