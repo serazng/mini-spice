@@ -12,17 +12,26 @@ AnswerType = Literal["mcq", "integer", "string", "expression"]
 def normalize_mcq(answer: str) -> str:
     """Normalize MCQ answer to A, B, C, or D."""
     answer = answer.strip().upper()
-    # First, try to find A, B, C, or D after a colon (e.g., "Answer: B")
-    match = re.search(r'[:]\s*([ABCD])', answer)
-    if match:
-        return match.group(1)
-    # Then try to find standalone A, B, C, or D (possibly with punctuation)
+    
+    # Strip boilerplate like "Answer:", "The answer is", etc.
+    answer = re.sub(
+        r'^(answer|the\s+answer\s+is|result|solution)[\s:]*',
+        '',
+        answer,
+        flags=re.IGNORECASE
+    ).strip()
+    
+    # Find the first valid option letter (A, B, C, or D) anywhere in the string
+    # Use word boundaries to avoid matching letters within other words (e.g., "C" in "CORRECT")
     match = re.search(r'\b([ABCD])\b', answer)
     if match:
         return match.group(1)
-    # Fallback: check if first character is A, B, C, or D
-    if len(answer) > 0 and answer[0] in ["A", "B", "C", "D"]:
-        return answer[0]
+    
+    # Fallback: find any A-D character (even if in a word) if word boundary fails
+    match = re.search(r'[ABCD]', answer)
+    if match:
+        return match.group(0)
+    
     return answer
 
 

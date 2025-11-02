@@ -1,0 +1,28 @@
+[
+  {
+    "question": "Janet has 8 apples. She gives away 3 apples to her friend. How many apples does Janet have left?",
+    "answer": "5",
+    "type": "integer"
+  },
+  {
+    "question": "A store had 20 bottles of water. They sold 6 bottles in the morning and 4 bottles in the afternoon. How many bottles are left?",
+    "answer": "10",
+    "type": "integer"
+  },
+  {
+    "question": "Tom has 15 stickers. He gives 2 stickers to each of his 4 friends. How many stickers does Tom have left?",
+    "answer": "7",
+    "type": "integer"
+  },
+  {
+    "question": "Sarah bought 3 packs of markers. Each pack contains 5 markers. How many markers does Sarah have in total?",
+    "answer": "15",
+    "type": "integer"
+  },
+  {
+    "question": "There are 24 students in a class. They are divided into groups of 4. How many groups are there?",
+    "answer": "6",
+    "type": "integer"
+  }
+]
+
