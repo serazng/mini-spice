@@ -6,7 +6,7 @@ from typing import Dict, List, Any, Optional
 from pathlib import Path
 
 from transformers import AutoModelForCausalLM, AutoTokenizer
-from mini_spice.roles import prompt_reasoner
+from mini_spice.roles import prompt_reasoner, parse_reasoner_output
 from mini_spice.verifier import verify, AnswerType
 
 
@@ -45,12 +45,19 @@ def evaluate(
         if generated_text.startswith(prompt):
             generated_text = generated_text[len(prompt):].strip()
         
-        # Extract answer (simple: take first line or JSON parse)
-        # For now, use the full generated text as prediction
-        prediction = generated_text.split("\n")[0].strip()
+        # Parse Reasoner output using the same contract as training
+        reasoner_data, reasoner_valid, reasoner_error = parse_reasoner_output(generated_text)
         
-        # Verify
-        is_correct = verify(prediction, answer, ans_type, mcq_options)
+        if not reasoner_valid or reasoner_data is None:
+            # Invalid JSON output: treat as incorrect (consistent with training)
+            prediction = ""
+            is_correct = False
+        else:
+            # Extract final_answer from the JSON payload
+            prediction = reasoner_data["final_answer"]
+            
+            # Verify correctness
+            is_correct = verify(prediction, answer, ans_type, mcq_options)
         
         if is_correct:
             correct += 1
