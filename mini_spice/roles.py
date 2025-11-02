@@ -13,7 +13,7 @@ class AnswerType(str, Enum):
     EXPRESSION = "expression"
 
 
-CHALLENGER_SYSTEM_MESSAGE = """You read a short document and craft a single rigorous question with a verifiable, typed answer. Output STRICT JSON with fields: question, type ∈ {mcq, integer, string, expression}, answer, and mcq_options (for mcq, 4 labeled options A–D with exactly one correct). The question must be answerable WITHOUT seeing the document if a capable reasoner has sufficient general knowledge. Keep the question concise. Do not include explanations."""
+CHALLENGER_SYSTEM_MESSAGE = """You read a short document and craft a single rigorous question with a verifiable, typed answer. Output STRICT JSON with fields: question, type ∈ {mcq, integer, string, expression}, answer. If type is "mcq", you MUST also include mcq_options (a list of exactly 4 labeled options A–D with exactly one correct). If type is NOT "mcq" (i.e., integer, string, or expression), you MUST NOT include mcq_options. The question must be answerable WITHOUT seeing the document if a capable reasoner has sufficient general knowledge. Keep the question concise. Do not include explanations."""
 
 REASONER_SYSTEM_MESSAGE = """You receive a question WITHOUT any source document. Provide only the final answer in STRICT JSON: {"final_answer": "..."}. Match the requested type when obvious (e.g., choose A/B/C/D for mcq; return a simplified integer or algebraic expression for expression). No extra text."""
 
@@ -112,7 +112,19 @@ def extract_json(text: str) -> Optional[Dict[str, Any]]:
 
 
 def validate_challenger_output(data: Dict[str, Any]) -> tuple[bool, Optional[str]]:
-    """Validate Challenger output format with strict schema: {question, type, answer, mcq_options?}."""
+    """Validate Challenger output format with strict schema: {question, type, answer, mcq_options?}.
+    
+    Schema details:
+    - Required fields: question, type, answer
+    - type must be one of: "mcq", "integer", "string", "expression"
+    - mcq_options is conditionally required:
+      * MUST be included when type == "mcq" (list of exactly 4 options labeled A-D)
+      * MUST NOT be included when type != "mcq" (integer, string, or expression)
+    - Extra fields are not allowed; strict schema enforcement for alignment with SPICE paper.
+    
+    Returns:
+        tuple: (is_valid, error_message) where is_valid is True if valid, False otherwise
+    """
     required_fields = {"question", "type", "answer"}
     missing = required_fields - set(data.keys())
     if missing:

@@ -114,6 +114,42 @@ class TestValidateChallengerOutput:
         assert is_valid is False
         assert "4" in error
     
+    def test_mcq_options_for_non_mcq_type(self):
+        """Test that mcq_options is rejected when type is not 'mcq'."""
+        # Test with integer type
+        data = {
+            "question": "What is 2+2?",
+            "type": "integer",
+            "answer": "4",
+            "mcq_options": ["A) 1", "B) 2", "C) 3", "D) 4"]  # Should not be present
+        }
+        is_valid, error = validate_challenger_output(data)
+        assert is_valid is False
+        assert "mcq_options" in error
+        assert "Extra fields not allowed" in error
+        
+        # Test with string type
+        data = {
+            "question": "What is the capital?",
+            "type": "string",
+            "answer": "Paris",
+            "mcq_options": ["A) London", "B) Paris", "C) Berlin", "D) Madrid"]
+        }
+        is_valid, error = validate_challenger_output(data)
+        assert is_valid is False
+        assert "mcq_options" in error
+        
+        # Test with expression type
+        data = {
+            "question": "What is 2+2?",
+            "type": "expression",
+            "answer": "4",
+            "mcq_options": ["A) 3", "B) 4", "C) 5", "D) 6"]
+        }
+        is_valid, error = validate_challenger_output(data)
+        assert is_valid is False
+        assert "mcq_options" in error
+    
     def test_empty_question(self):
         data = {
             "question": "",
