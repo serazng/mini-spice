@@ -286,12 +286,18 @@ class Trainer:
             # Parse Reasoner output
             reasoner_data, reasoner_valid, reasoner_error = parse_reasoner_output(reasoner_output)
             
+            # Compute log-probability with gradients enabled for ALL outputs (valid and invalid)
+            # This enables gradient feedback to discourage schema violations
+            logprob = self._compute_logprob_with_grad(
+                reasoner_prompt_token_ids,
+                reasoner_generated_token_ids
+            )
+            
             if not reasoner_valid or reasoner_data is None:
-                # Invalid Reasoner output: penalized and excluded from training
+                # Invalid Reasoner output: apply penalty reward
                 prediction = ""
                 is_correct = False
-                # Don't compute logprob for invalid outputs - they're excluded from training
-                logprob = None
+                reasoner_reward_value = self.config.invalid_penalty
             else:
                 prediction = reasoner_data["final_answer"]
                 
@@ -303,10 +309,12 @@ class Trainer:
                     mcq_options
                 )
                 
-                # Compute log-probability of answer with gradients enabled (only for valid outputs)
-                logprob = self._compute_logprob_with_grad(
-                    reasoner_prompt_token_ids,
-                    reasoner_generated_token_ids
+                # Compute reward for valid outputs
+                reasoner_reward_value = reasoner_reward(
+                    prediction,
+                    gold_answer,
+                    answer_type,
+                    mcq_options
                 )
             
             correctness_list.append(1.0 if is_correct else 0.0)
@@ -314,14 +322,14 @@ class Trainer:
             reasoner_attempts.append({
                 "prediction": prediction,
                 "correct": is_correct,
-                "logprob": logprob,  # None for invalid outputs
+                "logprob": logprob,
+                "reward": reasoner_reward_value,
                 "valid": reasoner_valid,
                 "error": reasoner_error if not reasoner_valid else None
             })
             
-            # Only add logprob to list if valid (for training)
-            if logprob is not None:
-                logprobs_reasoner.append(logprob)
+            # Add logprob to list for all outputs (valid and invalid)
+            logprobs_reasoner.append(logprob)
         
         # Compute Challenger reward
         rC, p_pass = challenger_reward(correctness_list, sigma=self.config.sigma)
@@ -394,16 +402,11 @@ class Trainer:
                 challenger_logprob = torch.tensor(0.0, device=self.device, requires_grad=True)
             all_challenger_logprobs.append(challenger_logprob)
             
-            # Collect Reasoner data - only include valid outputs in training
+            # Collect Reasoner data - include ALL outputs (valid and invalid) in training
             for reasoner_attempt in reasoner_attempts:
-                if reasoner_attempt["valid"]:
-                    # Valid outputs: include in training
-                    all_reasoner_logprobs.append(reasoner_attempt["logprob"])
-                    all_reasoner_rewards.append(1.0 if reasoner_attempt["correct"] else 0.0)
-                else:
-                    # Invalid outputs: penalized but excluded from training
-                    # Log the invalid attempt but don't add to training batches
-                    pass
+                # Include all outputs with their rewards (penalty for invalid, correctness for valid)
+                all_reasoner_logprobs.append(reasoner_attempt["logprob"])
+                all_reasoner_rewards.append(reasoner_attempt["reward"])
         
         # Policy update with debug output
         if len(all_challenger_rewards) > 0 or len(all_reasoner_rewards) > 0:
