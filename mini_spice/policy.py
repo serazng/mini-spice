@@ -83,45 +83,68 @@ class SimpleGRPO:
         loss_C = -torch.mean(logprobs_C * advantages_C) if len(logprobs_C) > 0 else torch.tensor(0.0, device=self.device)
         loss_R = -torch.mean(logprobs_R * advantages_R) if len(logprobs_R) > 0 else torch.tensor(0.0, device=self.device)
         
-        # Update challenger independently
-        loss_C_value = 0.0
-        if len(logprobs_C) > 0:
+        # Zero gradients for both optimizers before any backward pass
+        # This prevents in-place modifications from breaking the computation graph
+        has_loss_C = len(logprobs_C) > 0
+        has_loss_R = len(logprobs_R) > 0
+        
+        if has_loss_C:
             self.optimizer_C.zero_grad()
-            
+        if has_loss_R:
+            self.optimizer_R.zero_grad()
+        
+        # Backward both losses before any optimizer step to preserve computation graph
+        if has_loss_C and has_loss_R:
+            # Both losses exist: backward with retain_graph=True for first
+            if self.use_amp and self.scaler is not None:
+                self.scaler.scale(loss_C).backward(retain_graph=True)
+                self.scaler.scale(loss_R).backward()
+            else:
+                loss_C.backward(retain_graph=True)
+                loss_R.backward()
+        elif has_loss_C:
+            # Only challenger loss
             if self.use_amp and self.scaler is not None:
                 self.scaler.scale(loss_C).backward()
-                if clip_grad_norm is not None:
-                    self.scaler.unscale_(self.optimizer_C)
-                    torch.nn.utils.clip_grad_norm_(self.model.parameters(), clip_grad_norm)
-                self.scaler.step(self.optimizer_C)
-                self.scaler.update()
             else:
                 loss_C.backward()
-                if clip_grad_norm is not None:
-                    torch.nn.utils.clip_grad_norm_(self.model.parameters(), clip_grad_norm)
-                self.optimizer_C.step()
-            
-            loss_C_value = loss_C.item()
-        
-        # Update reasoner independently (gradients cleared from previous update)
-        loss_R_value = 0.0
-        if len(logprobs_R) > 0:
-            self.optimizer_R.zero_grad()
-            
+        elif has_loss_R:
+            # Only reasoner loss
             if self.use_amp and self.scaler is not None:
                 self.scaler.scale(loss_R).backward()
-                if clip_grad_norm is not None:
-                    self.scaler.unscale_(self.optimizer_R)
-                    torch.nn.utils.clip_grad_norm_(self.model.parameters(), clip_grad_norm)
-                self.scaler.step(self.optimizer_R)
-                self.scaler.update()
             else:
                 loss_R.backward()
-                if clip_grad_norm is not None:
-                    torch.nn.utils.clip_grad_norm_(self.model.parameters(), clip_grad_norm)
+        
+        # Apply gradient clipping if needed (only once for shared parameters)
+        if clip_grad_norm is not None and (has_loss_C or has_loss_R):
+            if self.use_amp and self.scaler is not None:
+                # Unscale for both optimizers before clipping
+                if has_loss_C:
+                    self.scaler.unscale_(self.optimizer_C)
+                if has_loss_R:
+                    self.scaler.unscale_(self.optimizer_R)
+            torch.nn.utils.clip_grad_norm_(self.model.parameters(), clip_grad_norm)
+        
+        # Apply optimizer steps after both backward passes complete
+        loss_C_value = 0.0
+        if has_loss_C:
+            if self.use_amp and self.scaler is not None:
+                self.scaler.step(self.optimizer_C)
+            else:
+                self.optimizer_C.step()
+            loss_C_value = loss_C.item()
+        
+        loss_R_value = 0.0
+        if has_loss_R:
+            if self.use_amp and self.scaler is not None:
+                self.scaler.step(self.optimizer_R)
+            else:
                 self.optimizer_R.step()
-            
             loss_R_value = loss_R.item()
+        
+        # Update scaler once after all optimizer steps (for AMP)
+        if self.use_amp and self.scaler is not None and (has_loss_C or has_loss_R):
+            self.scaler.update()
         
         total_loss_value = loss_C_value + loss_R_value
         
