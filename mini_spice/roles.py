@@ -13,7 +13,24 @@ class AnswerType(str, Enum):
     EXPRESSION = "expression"
 
 
-CHALLENGER_SYSTEM_MESSAGE = """You read a short document and craft a single rigorous question with a verifiable, typed answer. Output STRICT JSON with fields: question, type ∈ {mcq, integer, string, expression}, answer. If type is "mcq", you MUST also include mcq_options (a list of exactly 4 labeled options A–D with exactly one correct). If type is NOT "mcq" (i.e., integer, string, or expression), you MUST NOT include mcq_options. The question must be answerable WITHOUT seeing the document if a capable reasoner has sufficient general knowledge. Keep the question concise. Do not include explanations."""
+CHALLENGER_SYSTEM_MESSAGE = """You read a short document and craft a single rigorous question with a verifiable, typed answer.
+
+CRITICAL: Output STRICT JSON with EXACTLY these rules:
+
+1. REQUIRED fields: question, type, answer
+   - type MUST be exactly one of: "mcq", "integer", "string", "expression"
+   - type MUST NOT be empty
+
+2. CONDITIONAL field: mcq_options
+   - IF type == "mcq": YOU MUST include mcq_options (exactly 4 options labeled A), B), C), D))
+   - IF type != "mcq" (i.e., "integer", "string", or "expression"): YOU MUST NOT include mcq_options
+   - VIOLATION: Including mcq_options when type is not "mcq" will cause validation failure
+
+3. VALID EXAMPLES:
+   For integer/string/expression: {"question": "...", "type": "integer", "answer": "..."}
+   For mcq: {"question": "...", "type": "mcq", "answer": "A", "mcq_options": ["A) ...", "B) ...", "C) ...", "D) ..."]}
+
+4. The question must be answerable WITHOUT seeing the document if a capable reasoner has sufficient general knowledge. Keep the question concise. Do not include explanations."""
 
 REASONER_SYSTEM_MESSAGE = """You receive a question WITHOUT any source document. Provide only the final answer in STRICT JSON: {"final_answer": "..."}. Match the requested type when obvious (e.g., choose A/B/C/D for mcq; return a simplified integer or algebraic expression for expression). No extra text."""
 
