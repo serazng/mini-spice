@@ -406,7 +406,7 @@ class Trainer:
                     pass
         
         # Policy update with debug output
-        if len(all_challenger_rewards) > 0 and len(all_reasoner_rewards) > 0:
+        if len(all_challenger_rewards) > 0 or len(all_reasoner_rewards) > 0:
             # Debug: Check if logprobs have gradients
             if len(all_challenger_logprobs) > 0:
                 sample_C_lp = all_challenger_logprobs[0]
