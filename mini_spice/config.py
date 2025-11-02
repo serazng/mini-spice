@@ -43,7 +43,8 @@ class Config:
     lora_alpha: int = 16
     lora_dropout: float = 0.1
     
-    learning_rate: float = 1e-5
+    learning_rate_C: float = 1e-5
+    learning_rate_R: float = 1e-5
     seed: int = 42
     log_interval: int = 10
     checkpoint_interval: int = 20

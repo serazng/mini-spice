@@ -7,8 +7,8 @@ Minimal, single-GPU/CPU implementation of
 
 SPICE is a self-play reinforcement-learning framework in which a single model plays two complementary roles:
 
-Challenger: Mines documents from a corpus to generate diverse, verifiable reasoning tasks.
-Reasoner: Solves these tasks without access to the documents.
+- Challenger: Mines documents from a corpus to generate diverse, verifiable reasoning tasks.
+- Reasoner: Solves these tasks without access to the documents.
 
 The key idea is a Gaussian reward centered around a 50 % pass-rate. This drives the Challenger to produce questions that are neither trivial nor impossible—an emergent curriculum that helps the Reasoner continually improve.
 Both agents are optimized via GRPO-style policy updates with centered advantages.
@@ -41,6 +41,8 @@ run-train \
     --G 4 \
     --temp-C 1.0 \
     --temp-R 1.0 \
+    --learning-rate-C 1e-5 \
+    --learning-rate-R 1e-5 \
     --4bit \
     --lora
 ```
@@ -50,6 +52,7 @@ Key parameters:
 - `B`: Batch size (default: 8)
 - `G`: Reasoner attempts per Challenger question (default: 3)
 - `temp-C`, `temp-R`: Sampling temperatures
+- `--learning-rate-C`, `--learning-rate-R`: Separate learning rates for challenger and reasoner (default: 1e-5 each)
 - `--4bit`, `--lora`: Memory-efficient training
 
 ### Environment Variables

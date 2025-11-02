@@ -141,6 +141,8 @@ def main():
     
     # Other
     parser.add_argument("--invalid-penalty", type=float, dest="invalid_penalty", help="Invalid output penalty")
+    parser.add_argument("--learning-rate-C", type=float, dest="learning_rate_C", help="Challenger learning rate (default: 1e-5)")
+    parser.add_argument("--learning-rate-R", type=float, dest="learning_rate_R", help="Reasoner learning rate (default: 1e-5)")
     parser.add_argument("--seed", type=int, help="Random seed")
     parser.add_argument("--log-interval", type=int, dest="log_interval", help="Logging interval")
     parser.add_argument("--checkpoint-interval", type=int, dest="checkpoint_interval", help="Checkpoint interval")
@@ -182,6 +184,10 @@ def main():
         config.checkpoints_dir = args.checkpoints_dir
     if args.invalid_penalty is not None:
         config.invalid_penalty = args.invalid_penalty
+    if args.learning_rate_C is not None:
+        config.learning_rate_C = args.learning_rate_C
+    if args.learning_rate_R is not None:
+        config.learning_rate_R = args.learning_rate_R
     if args.seed is not None:
         config.seed = args.seed
     if args.log_interval is not None:
@@ -205,6 +211,7 @@ def main():
     print("=" * 60)
     print(f"Config: T={config.T}, B={config.B}, G={config.G}")
     print(f"Temperatures: C={config.temp_C}, R={config.temp_R}")
+    print(f"Learning rates: C={config.learning_rate_C:.2e}, R={config.learning_rate_R:.2e}")
     print(f"Model: {config.base_model}")
     print(f"Seed: {config.seed}")
     print("=" * 60)
@@ -212,17 +219,21 @@ def main():
     # Load model and tokenizer
     model, tokenizer, device = load_model_and_tokenizer(config)
     
-    # Create optimizer
-    optimizer = torch.optim.AdamW(
+    # Create separate optimizers for challenger and reasoner
+    optimizer_C = torch.optim.AdamW(
         model.parameters(),
-        lr=config.learning_rate
+        lr=config.learning_rate_C
+    )
+    optimizer_R = torch.optim.AdamW(
+        model.parameters(),
+        lr=config.learning_rate_R
     )
     
     # Create policy
-    policy = SimpleGRPO(model, optimizer, device=device, use_amp=False)
+    policy = SimpleGRPO(model, optimizer_C, optimizer_R, device=device, use_amp=False)
     
     # Create trainer
-    trainer = Trainer(config, model, tokenizer, optimizer, policy, device)
+    trainer = Trainer(config, model, tokenizer, optimizer_C, optimizer_R, policy, device)
     
     # Create run log
     run_id = f"run_{datetime.now().strftime('%Y%m%d_%H%M%S')}"

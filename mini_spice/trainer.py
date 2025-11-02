@@ -19,22 +19,38 @@ from .storage import log_episode, save_checkpoint_manifest
 
 
 class Trainer:
-    """Self-play trainer for Challenger and Reasoner."""
+    """Self-play trainer for Challenger and Reasoner.
+    
+    Uses separate optimizers for challenger and reasoner roles to prevent
+    policy interference while maintaining a shared model architecture.
+    """
     
     def __init__(
         self,
         config: Config,
         model: AutoModelForCausalLM,
         tokenizer: AutoTokenizer,
-        optimizer: torch.optim.Optimizer,
+        optimizer_C: torch.optim.Optimizer,
+        optimizer_R: torch.optim.Optimizer,
         policy: SimpleGRPO,
         device: torch.device
     ):
-        """Initialize trainer."""
+        """Initialize trainer with separate optimizers for each role.
+        
+        Args:
+            config: Training configuration.
+            model: Shared model used by both challenger and reasoner.
+            tokenizer: Tokenizer for text processing.
+            optimizer_C: Optimizer for challenger role updates.
+            optimizer_R: Optimizer for reasoner role updates.
+            policy: Policy update handler (SimpleGRPO).
+            device: Device to use for computations.
+        """
         self.config = config
         self.model = model
         self.tokenizer = tokenizer
-        self.optimizer = optimizer
+        self.optimizer_C = optimizer_C
+        self.optimizer_R = optimizer_R
         self.policy = policy
         self.device = device
         
@@ -485,8 +501,9 @@ class Trainer:
         # Save tokenizer
         self.tokenizer.save_pretrained(checkpoint_dir)
         
-        # Save optimizer state
-        torch.save(self.optimizer.state_dict(), os.path.join(checkpoint_dir, "optimizer.pt"))
+        # Save optimizer states
+        torch.save(self.optimizer_C.state_dict(), os.path.join(checkpoint_dir, "optimizer_C.pt"))
+        torch.save(self.optimizer_R.state_dict(), os.path.join(checkpoint_dir, "optimizer_R.pt"))
         
         # Save manifest
         save_checkpoint_manifest(
