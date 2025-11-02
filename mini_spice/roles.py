@@ -135,7 +135,7 @@ def validate_challenger_output(data: Dict[str, Any]) -> tuple[bool, Optional[str
         return False, f"Extra fields not allowed: {extra_fields}. Schema must be {{question, type, answer, mcq_options?}}"
     
     if not isinstance(data["question"], str) or not data["question"].strip():
-        return False, "Question must be a non-empty string"
+        return False, "question must be a non-empty string"
     
     if not isinstance(data["answer"], (str, int, float)):
         return False, "Answer must be a string or number"
